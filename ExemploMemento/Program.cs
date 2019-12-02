@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.IO;
 
 namespace ConsoleApplication43
 {
@@ -8,7 +9,7 @@ namespace ConsoleApplication43
     {
 
         #region Originator
-        class File
+        class Arquivo
         {
             private DateTime _dataModificacao;
             private string _nomeArquivo;
@@ -56,13 +57,6 @@ namespace ConsoleApplication43
                 this._diretorio = a.Diretorio;
                 this._textoArquivo = a.Texto;
             }
-            public void ExibirInfo()
-            {
-                Console.WriteLine("__________________________________\n");
-                Console.WriteLine("Data de modificação: {0} \nDiretório do arquivo : {1} \nNome do arquivo : {2} \nTexto do arquivo : {3} ", _dataModificacao, _diretorio, _nomeArquivo, _textoArquivo);
-                Console.WriteLine("__________________________________\n");
-            }
-
         }
         #endregion
         #region Memento
@@ -115,35 +109,50 @@ namespace ConsoleApplication43
         {
             Console.Title = "GitBash";
 
-            File a = new File();
+            string userNome = Environment.UserName;
+            string computadorNome = Environment.MachineName;
+            string[] matrizAuxiliar = Environment.CurrentDirectory.Split(Char.Parse(@"\"));
+            string pathPadrao = matrizAuxiliar[0] + @"\" + matrizAuxiliar[1] + @"\" + matrizAuxiliar[2] + @"\";
+            string path = pathPadrao;
+
+            do
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.Write("{0}@{1} ",userNome, computadorNome);
+                Console.ForegroundColor = ConsoleColor.Magenta;
+                Console.Write("MINGW{0} ", Environment.Is64BitOperatingSystem ? "64" : "32");
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine(path == pathPadrao ? "~" : path);
+                Console.ResetColor();
+                Console.Write("$");
+                Console.ReadLine();
+            } while (true);
+            Console.WriteLine(userNome + computadorNome);
+            Arquivo a = new Arquivo();
             Github b = new Github();
             //vs 1
             a.Diretorio = @"C:\Users\aluno\Object3D";
             a.NomeArquivo = "Musicas";
             a.Texto = "Eu curto rock balboa";
 
-            a.ExibirInfo();
             //salvando vs 1
             b.CareTaker = a.SalvarCommits();
             //vs 2
             a.Diretorio = @"C:\Users\aluno\Object3D";
             a.NomeArquivo = "Maçã";
             a.Texto = "Maçã verde, cultivada em 1987 e mumificada pelo própio Isaaac Newton";
-
-            a.ExibirInfo();
+            
             //salvando vs 2
             b.CareTaker = a.SalvarCommits();
             //vs 3
             a.Diretorio = @"C:\Users\aluno\JogoPi";
             a.NomeArquivo = "Rodavort";
             a.Texto = "O melhor jogo do mundo?";
-            a.ExibirInfo();
+            
             //regredindo para vs 2
             a.VoltarCommits(b.CareTaker);
-            a.ExibirInfo();
             //regredindo para vs 1
             a.VoltarCommits(b.CareTaker);
-            a.ExibirInfo();
         }
     }
 }
