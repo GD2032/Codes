@@ -2,12 +2,28 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.IO;
+using System.Security.AccessControl;
 
 namespace ConsoleApplication43
 {
     class Program
     {
-
+        #region MonitoramentoArquivo
+        public static string nomeArquivoModificado;
+        public static string diretorioArquivoModificado;
+        private static FileSystemWatcher _monitorarArquivo;
+        public static void MonitorarArquivos(string path,string filtro)
+        {
+            _monitorarArquivo = new FileSystemWatcher(path, filtro) { IncludeSubdirectories = false };
+            _monitorarArquivo.EnableRaisingEvents = true;
+            _monitorarArquivo.Renamed += OnFileRenamed;
+        }
+        private static void OnFileRenamed(object sender, RenamedEventArgs b)
+        {
+            nomeArquivoModificado = b.Name;
+            diretorioArquivoModificado = b.FullPath;
+        }
+        #endregion
         #region Originator
         class Arquivo
         {
@@ -15,6 +31,18 @@ namespace ConsoleApplication43
             private string _nomeArquivo;
             private string _textoArquivo;
             private string _diretorio;
+            private string[] _matrizAuxiliar;
+            public Arquivo(string path)
+            {
+                using (StreamReader sr = File.OpenText(path))
+                {
+                    _textoArquivo = sr.ReadLine();
+                }
+                _diretorio = path;
+                _matrizAuxiliar = path.Split(char.Parse(@"\"));
+                _nomeArquivo = _matrizAuxiliar[_matrizAuxiliar.Length - 1];
+                Console.WriteLine(_nomeArquivo);
+            }
             #region Propiedades
             public string NomeArquivo
             {
@@ -47,15 +75,26 @@ namespace ConsoleApplication43
             public Commits SalvarCommits()
             {
                 Console.WriteLine("Salvando versão...");
+                if (_nomeArquivo != _matrizAuxiliar[_matrizAuxiliar.Length - 1])
+                    this._nomeArquivo = _matrizAuxiliar[_matrizAuxiliar.Length - 1];
+                using (StreamReader sr = File.OpenText(_diretorio))
+                {
+                    _textoArquivo = sr.ReadLine();
+                }
+                Console.WriteLine(_textoArquivo + "  ue");
                 return new Commits(_dataModificacao, _nomeArquivo, _textoArquivo, _diretorio);
             }
             public void VoltarCommits(Commits a)
             {
-
                 Console.WriteLine("Regredindo versão...");
                 this._nomeArquivo = a.NomeArquivo;
                 this._diretorio = a.Diretorio;
                 this._textoArquivo = a.Texto;
+                File.Delete(_diretorio);
+                using(StreamWriter sw = File.CreateText(_diretorio))
+                {
+                    sw.WriteLine(_textoArquivo + " pegou");
+                }
             }
         }
         #endregion
@@ -114,7 +153,10 @@ namespace ConsoleApplication43
             string[] matrizAuxiliar = Environment.CurrentDirectory.Split(Char.Parse(@"\"));
             string pathPadrao = matrizAuxiliar[0] + @"\" + matrizAuxiliar[1] + @"\" + matrizAuxiliar[2] + @"\";
             string path = pathPadrao;
-
+            string input;
+            Arquivo a = new Arquivo(path + "teste.txt");
+            Github b = new Github();
+            MonitorarArquivos(path,"*teste.txt");
             do
             {
                 Console.ForegroundColor = ConsoleColor.Green;
@@ -125,34 +167,48 @@ namespace ConsoleApplication43
                 Console.WriteLine(path == pathPadrao ? "~" : path);
                 Console.ResetColor();
                 Console.Write("$");
-                Console.ReadLine();
+                input = Console.ReadLine();
+                try
+                {
+                    switch (input.Substring(0, 3))
+                    {
+                        case "cd ":
+                            if(Directory.Exists(path + @input.Substring(3)))
+                            {
+                                a.Diretorio = path + @input.Substring(3);
+                                path = a.Diretorio;
+                            }
+                            else
+                            {
+                                Console.WriteLine("Este Caminho não existe");
+                            }
+                            goto default;
+                        case "git":
+                            switch (input.Substring(4))
+                            {
+                                case "commit -m":
+                                    if (!Directory.Exists(a.Diretorio))
+                                    {
+                                        a.Diretorio = diretorioArquivoModificado;
+                                        a.NomeArquivo = nomeArquivoModificado;
+                                    }
+                                    b.CareTaker = a.SalvarCommits();
+                                    break;
+                                case "checkout":
+                                    a.VoltarCommits(b.CareTaker);
+                                    break;
+                            }
+                            goto default;
+                        default:
+                            Console.WriteLine();
+                            break;
+                    }
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine();
+                }
             } while (true);
-            Console.WriteLine(userNome + computadorNome);
-            Arquivo a = new Arquivo();
-            Github b = new Github();
-            //vs 1
-            a.Diretorio = @"C:\Users\aluno\Object3D";
-            a.NomeArquivo = "Musicas";
-            a.Texto = "Eu curto rock balboa";
-
-            //salvando vs 1
-            b.CareTaker = a.SalvarCommits();
-            //vs 2
-            a.Diretorio = @"C:\Users\aluno\Object3D";
-            a.NomeArquivo = "Maçã";
-            a.Texto = "Maçã verde, cultivada em 1987 e mumificada pelo própio Isaaac Newton";
-            
-            //salvando vs 2
-            b.CareTaker = a.SalvarCommits();
-            //vs 3
-            a.Diretorio = @"C:\Users\aluno\JogoPi";
-            a.NomeArquivo = "Rodavort";
-            a.Texto = "O melhor jogo do mundo?";
-            
-            //regredindo para vs 2
-            a.VoltarCommits(b.CareTaker);
-            //regredindo para vs 1
-            a.VoltarCommits(b.CareTaker);
         }
     }
 }
